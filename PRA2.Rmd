@@ -1,0 +1,476 @@
+---
+title: "M2.851 - Tipología y ciclo de vida de los datos Practica 2"
+author: "Francisco Javier Melchor y Enrique Otero"
+date: "04/01/2021"
+toc: true
+theme: united
+output: pdf_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Paquetes
+Los paquetes que se van a utilizar para el desarrollo de esta actividad, son los siguientes:
+
+```{r, message=FALSE}
+if(!require(ggplot2)){
+  install.packages("ggplot2")
+  library(ggplot2)
+}
+if(!require(arc)){
+  install.packages("arc")
+  library(arc)
+}
+
+if(!require(ggcorrplot)){
+  install.packages("ggcorrplot")
+  library(ggcorrplot)
+}
+```
+
+# Presentación
+En esta práctica se elabora un caso práctico orientado a aprender a identificar los datos relevantes para un proyecto analítico y usar las herramientas de integración, limpieza, validación y análisis de las mismas. Para hacer esta práctica tendréis que trabajar en grupos de 2 personas. Tendréis que entregar un solo archivo con el enlace Github (https://github.com) donde se encuentren las soluciones incluyendo los nombres de los componentes del equipo. Podéis utilizar la Wiki de Github para describir vuestro equipo y los diferentes archivos que corresponden a vuestra entrega. Cada miembro del equipo tendrá que contribuir con su usuario Github. Aunque no se trata del mismo enunciado, los siguientes ejemplos de ediciones anteriores os pueden servir como guía:  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Ejemplo: https://github.com/Bengis/nba-gap-cleaning  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Ejemplo complejo (archivo adjunto).
+
+
+# Competencias
+En esta práctica se desarrollan las siguientes competencias del Máster de Data Science:  
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A. Capacidad de analizar un problema en el nivel de abstracción adecuado a cada situación y aplicar las habilidades y conocimientos adquiridos para abordarlo y resolverlo.  
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;B.Capacidad para aplicar las técnicas específicas de tratamiento de datos (integración, transformación, limpieza y validación) para su posterior análisis.
+
+# Objetivos
+Los objetivos concretos de esta práctica son:  
+
+|   1. __Aprender__ a aplicar los conocimientos adquiridos y su capacidad de resolución de problemas en entornos  
+|   nuevos o poco conocidos dentro de contextos más amplios o multidisciplinares.  
+
+|   2. __Saber__ identificar los datos relevantes y los tratamientos necesarios (integración, limpieza y validación)  
+|   para llevar a cabo un proyecto analítico.  
+
+|   3. __Aprender__ a analizar los datos adecuadamente para abordar la información contenida en los datos.  
+
+|   4. __Identificar__ la mejor representación de los resultados para aportar conclusiones sobre el problema  
+|   planteado en el proceso analítico.  
+
+|   5. __Actuar__ con los principios éticos y legales relacionados con la manipulación de datos en Tipología y ciclo  
+|   de vida de los datos Práctica 2 pág 2 función del ámbito de aplicación.  
+
+|   6. __Desarrollar__ las habilidades de aprendizaje que les permitan continuar estudiando de un modo que  
+|   tendrá que ser en gran medida autodirigido o autónomo.  
+
+|   7. __Desarrollar__ la capacidad de búsqueda, gestión y uso de información y recursos en el ámbito de la ciencia  
+|   de datos.  
+
+# Descripción de la Práctica a realizar
+El objetivo de esta actividad será el tratamiento de un dataset, que puede ser el creado en la práctica 1 o bien cualquier dataset libre disponible en Kaggle (https://www.kaggle.com). Algunos ejemplos de dataset con los que podéis trabajar son:  
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Red Wine Quality (https://www.kaggle.com/uciml/red-wine-quality-cortez-et-al-2009)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Titanic: Machine Learning from Disaster (https://www.kaggle.com/c/titanic)  
+
+El último ejemplo corresponde a una competición activa de Kaggle de manera que, opcionalmente, podéis aprovechar el trabajo realizado durante la práctica para entrar en esta competición.
+
+# Preguntas y desarrollo de respuestas
+Siguiendo las principales etapas de un proyecto analítico, las diferentes tareas a realizar (y justificar) son las siguientes:  
+
+## 1. Descripción del dataset. ¿Por qué es importante y qué pregunta/problema pretende responder?
+Para nuestra practica especifica hemos elegido el dataset asociado al ejemplo de Kaggle:  
+__Titanic: Machine Learnin from Disaster__  
+
+El hundimiento del Titanic es uno de los naufragios más trágicos de la historia.
+
+El 15 de abril de 1912, durante su viaje inaugural, el RMS Titanic, ampliamente considerado "insumergible", se hundió tras chocar con un iceberg. Desafortunadamente, no había suficientes botes salvavidas para todos a bordo, lo que resultó en la muerte de 1502 de los 2224 pasajeros y la tripulación.
+
+Si bien hubo algún elemento de suerte involucrado en sobrevivir, parece que algunos grupos de personas tenían más probabilidades de sobrevivir que otros.
+
+En este desafío, se pide crear un modelo predictivo que responda a la pregunta: __"¿Qué tipo de personas tenían más probabilidades de sobrevivir?"__ utilizando datos de pasajeros (es decir, nombre, edad, sexo, clase socioeconómica, etc.). En términos de análitica se trata de un problema de __clasificación__, esto es, usar esas variables independientes para predecir la categoría a la que pertenece cada registro, o, dicho de otra manera, predecir si un pasajero dado va a sobrevivir o no.
+
+El enlace de descarga de este ejemplo contiene tres ficheros:  
+
+|   __train.csv__. Se trata del dataset _test_ sobre el que entrenamos a nuestros modelos de analítica.  
+|   __test.csv__. Es el dataset donde probamos, con nuevos datos, nuestros modelos de analítica.  
+|   Para este caso no se incluye el resultado (variable dependiente _Survived_) ya que es el objetivo  
+|   del concurso.
+|   __gender_submission.csv__. Contiene un ejemplo de como debe presentarse el formato de salida con el  
+|   resultado de nuestros modelos. Se trata de un conjunto de predicciones que asumen que todas y solo  
+|   mujeres sobreviven.  
+
+Según los datos proporcionados en la web de Kaggle, las variables de los datasets son:  
+
+| __Variable__ | __Definition__ | __Key__ | 
+|:-------------|:---------------|:------- |
+| __Survived__ | If passenger survived | 0 = No, 1 = Yes |
+| __Pclass__ | Ticket Class | 1 = 1st, 2 = 2nd, 3 = 3rd |
+| __Sex__ | Passenger Sex | |
+| __Age__ | Passenger Age in years | |
+| __SibSp__ | Number of sibings/spouses of the passenger aboard the Titanic | |
+| __Parch__ | Number of parents/children of the passenger aboard the Titanic | |
+| __Ticket__ | Ticket number | |
+| __Fare__ | Passenger fare | |
+| __Cabin__ | Cabin Number | |
+| __Embarked__ | Port of Embarkation | |  
+
+## 2. Integración y selección de los datos de interés a utilizar
+
+En este caso al estar realizando el análisis de un único dataset, no es necesario realizar ninguna integración de distintas fuentes, pues sólo existe una. 
+
+Por otro lado, con respecto a la selección, en este caso al no ser un dataset excesivamente grande y al no tener fijado un objetivo diferente que analizar todo el conjunto de sus datos y no una parte de ellos, no se realizará ninguna selección del dataset de origen ni se acotará el mismo.
+
+## 3. Limpieza de datos
+En esta sección realizaremos una limpieza del dataset incluido en el fichero __train.csv__.
+
+Para ello, lo primero que realizaremos es la lectura del fichero __train.csv__ y comprobar como han sido interpretadas por R las variables que forman el mismo.
+
+```{r}
+ttc <- read.csv("./Data/train.csv",na.strings=c(""," ","NA"))
+head(ttc)
+str(ttc)
+# Contamos con 891 observaciones de las 12 variables decritas al inicio de esta seccion. 
+```
+Como se puede observar, la mayoría de las variables han sido interpretadas correctamente por R, pero tanto la variable **Sex** como la variable **Embarked**, han sido formateadas como variables de tipo carácter (chr) y realmente son variables categóricas. Por otro lado, la variable **Survived** y **Pclass** han sido interpretadas como variables numéricas cuando realmente son variables categóricas. Procedemos a continuación a convertir las variables nombradas.
+
+```{r}
+ttc$Sex <- as.factor(ttc$Sex)
+ttc$Embarked <- as.factor(ttc$Embarked)
+ttc$Survived <- as.factor(ttc$Survived)
+ttc$Pclass <- as.factor(ttc$Pclass)
+
+str(ttc)
+```
+Una vez que todas las variables han sido interpretadas correctamente, podemos proceder a realizar la limpieza y el procesamiento de los datos que contiene este dataframe.
+
+### 3.1. ¿Los datos contienen ceros o elementos vacíos? ¿Cómo gestionarías cada uno de estos casos?
+
+A continuación se procede a comprobar si existen valores nulos o elementos vacíos en el dataframe a analizar:
+
+```{r}
+colSums(is.na(ttc))
+
+```
+Como se puede observar, existen valores faltantes en las columnas **Age, Cabin y Embarked**.
+
+Para responder a la pregunta de *¿Cómo gestionarías cada uno de estos casos?*, primero hay que analizar el número total de filas del dataset que se está analizando:
+
+```{r}
+nrow = nrow(ttc)
+```
+El número total de filas con las que cuenta el dataset son: `r nrow`
+
+Teniendo en cuenta la dimensión del dataframe y el número de valores faltantes, procedemos a realizar las siguientes consideraciones:
+
+* En el caso de la variable **Age**, al contar con una proporción de 19% de valores faltantes, al ser una proporción baja, se realizará una imputación de dichos valores. Dicha imputación será a través del estimador de la mediana, para evitar sesgos causadps por valores atípicos, y dicha imputación se dividirá por clases, es decir, se calcularán la mediana de edad resultante en cada una de las clases y dependiendo de si el valor faltante pertenece a una clase u otra se le imputará la mediana resultante de la edad en dicha clase.
+
+* En el caso de la variable **Cabin**, al tratarse de más de un 70% de valores nulos o no válidos, dicha variable será eliminada del conjunto de datos a tratar, ya que no tenemos suficientte información en la que basarnos (un 30% de los casos) para realizar una imputación.
+
+* Por último, para la variable **Embarked**, al tratarse únicamente de 2 casos con respecto al total que son `r nrow, se eliminarán aquellas filas con dicho valor a nulo, pues al ser una cantidad tan pequeña, no merece la pena realizar una imputación.
+
+A continuación procedemos a realizar los cambios comentados:
+
+Primero comenzaremos con la eliminación de la variable **Cabin**
+
+```{r}
+ttc$Cabin <- NULL
+head(ttc)
+```
+
+Ahora procederemos a eliminar aquellas filas donde la variable **Embarked** tiene un valor no válido:
+
+```{r}
+ttc <- ttc[!is.na(ttc$Embarked),]
+colSums(is.na(ttc))
+
+```
+
+Por último, procedemos a realizar la imputación de la variable **Age**:
+
+```{r}
+imputationFunct <- function(x){
+    if (is.na(x["Age"])){
+      x["Age"]<- median(ttc$Age[ttc$Pclass==x["Pclass"] & !is.na (ttc$Age)])
+    } else{
+      x<-x
+    }
+  return (x["Age"])
+}
+
+ttc$Age <- apply(ttc,1,imputationFunct)
+ttc$Age <- as.numeric(ttc$Age)
+sapply(ttc,function(x) sum(is.na(x)))
+```
+
+## 3.2 Identificación y tratamiento de valores extremos
+
+Una vez analizados y resueltos los valores faltantes del dataset a analizar, se procede a comprobar si existen valores atípicos en el mismo. Para ello, primero representaremos las variables numéricas con un diagrama de cajas y bigotes, lo cual nos permitirá visualizar gráficamente a simple vista si existen valores atípicos.
+
+```{r}
+# Boxplot para la variable Age
+summary(ttc$Age)
+ggplot(data = ttc, aes(y = Age)) +
+  geom_boxplot(outlier.colour = "red") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  ggtitle("Passenger Age Boxplot") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5))
+
+# Boxplot para la variable SibSp
+summary(ttc$SibSp)
+ggplot(data = ttc, aes(y = SibSp)) +
+  geom_boxplot(outlier.colour = "red") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  ggtitle("Passenger sibings/spouses Boxplot") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5))
+
+# Boxplot para la variable Parch
+summary(ttc$Parch)
+ggplot(data = ttc, aes(y = Parch)) +
+  geom_boxplot(outlier.colour = "red") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  ggtitle("Passenger parents/children Boxplot") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5))
+
+# Boxplot para la variable Fare
+summary(ttc$Fare)
+ggplot(data = ttc, aes(y = Fare)) +
+  geom_boxplot(outlier.colour = "red") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  ggtitle("Passenger paid Fare Boxplot") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5))
+```
+
+Una vez representadas las diferentes variables numéricas, procedemos a extraer las conclusiones oportunas de cada una de ellas. Cuando existen valores atípicos en los datos, pueden darse debido a varias opciones, puede ser porque son valores tomados con una unidad diferente que haga que algunos casos difieran de manera atípica de otros, puede que esos valores representen un valor faltante o nulo o puede que dichos valores formen parte de la muestra y por lo tanto sean valores reales y que hay que tener en cuenta a la hora de realizar los diferentes análisis. También puede darse el caso que sean valores que por el contexto se denote que no han sido tomados correctamente (como por ejemplo una edad de 150 años).
+
+En este caso, nos encontramos con que tenemos valores atípicos en todas las variables numéricas, aunque sí que es cierto que en algunas de ellas dichos valores se encuentran más aislados, como es el caso de la variable **Fare**, que indica la tarifa del pasajero/a.
+
+* En el caso de la variable **Age**, vemos que la mediana se encuentra apróximadamente entre los 25 años, pero que existen valores atípicos a partir de 60 y que hay casos de pasajeros hasta con 80 años. Sí que es verdad que se trata de un valor atípico con respecto a la mayoría de personas que se encuentran en el barco, pero no es un valor imposible de encontrar, por lo que se considera que forma parte del conjunto de datos y que se tiene que tener en cuenta a la hora de realizar el análisis.
+
+* En el caso de la variable **Sibing/spouses** el valor más destacado es el caso de 8. Sí que es verdad que se trata de un valor poco casual, pero puede darse el caso de que una persona tenga 7 hermanos/as y una esposa, o múltiples combinaciones, es decir, a simple vista, no parece ser un valor irreal, por lo que se considera que también se debe tener en cuenta para el análisis.
+
+* En el caso de la variable **Parents/children** pasa un poco como con la variable anterior, el valor máximo es 6 pero no se trata de un valor imposible o improbable, y más por la época en la que se basan los datos, en la que tener 5 o 6 hijos era algo común, por lo que no se considera oportuno realizar ningún cambio en dichos valores.
+
+* Por último, la variable **Fare** resulta ser la variable que contiene los valores atípicos que más se alejan de la desviación estándar de la misma, pues ya de por sí un valor por encima de los 250 resulta ser bastante atípico (según los datos), con lo que en el caso de estar por encima de 500, sitúa dicho valor demasiado alejado de los demás. Dado el significado de la variable y el contexto, puede tratarse perfectamente de un valor real, ya que en los cruceros existen pasajes muy lujosos que tienen un precio muy por encima de un pasaje estándar. No obstante, si que es cierto, que aunque pueda tratarse de valores reales, al estar tan extremadamete alejado de la desviación estándar de la población, puede hacer que los diferentes análisis que se apliquen estén sesgados por dichos valores.
+
+A continuación se procede a estudiar cuantos casos de la variable **Fare** se encuentran por encima de 500 y a realizar una comparación del resultado obtenido por una medida de dispersión robusta a la presencia de valores atípicos, la mediana, con una no robusta a ellos, la media.
+
+
+```{r}
+outlier_cases = nrow(ttc[ttc$Fare > 500,])
+mean_Fare = mean(ttc$Fare)
+median_Fare = median(ttc$Fare)
+
+outlier_cases
+mean_Fare
+median_Fare
+```
+
+Como se puede observar, el número total de casos atípicos son `r outlier_cases` en todo el dataset.
+
+Por otro lado, el valor obtenido por la media es de `r mean_Fare`, mientras que por la mediana es de `r median_Fare`. Si comparamos ambos resultado, podemos ver que el valor obtenido por la media es apróximadamente el doble que el obtenido por la mediana, lo que indica que los valores atípicos están sesgando dicha medida de dispersión, pero dicho sesgo no se debe a los 3 casos que se encuentran por encima de 500, si que es cierto que influirán, pero el grueso del sesgo se debe que existen muchos casos por encima de la mediana.
+
+Al tratarse de tan pocos casos de los que se encuentran exageradamente desviados (3) y al parecer por el contexto que pueden tratarse de valores reales, se considera que deben ser utilizados para los distintos análisis o métodos estadísticos que se realicen, pero que se deberá tener en cuenta su presencia para aplicar análisis que sean robustos a la presencia de valores atípicos. Pues realizar una imputación de todos los valores que son realmente atípicos o eliminarlos, conllevaría una gran pérdida de información que no es necesaria.
+
+
+## 4. Análisis de los datos.
+
+A continuación, procederemos a realizar una visualización de las diferentes columnas o variables que forman el dataset, para ver como se distribuyen las mismas.
+
+Comenzaremos por aquellas variables categóricas o cualitativas, estas son:
+
+```{r}
+factors = unlist(lapply(ttc, is.factor))
+which(factors, arr.ind = TRUE)
+
+```
+
+Procedemos a continuación a representar cada una de ellas:
+
+```{r}
+
+mytableSex <- table(ttc$Sex)
+pctSex <- round(mytableSex/sum(mytableSex)*100)
+lblsSex <- paste(names(mytableSex), "\n", pctSex, sep="")
+lblsSex <- paste (lblsSex, '%', sep="")
+pie(mytableSex, labels = lblsSex,
+    main="Distribución de la variable Sex\n", col=c("brown4","darkblue"))
+
+mytableSurvived <- table(ttc$Survived)
+pctSurvived <- round(mytableSurvived/sum(mytableSurvived)*100)
+lblsSurvived<- paste(names(mytableSurvived), "\n", pctSurvived, sep="")
+lblsSurvived <- paste (lblsSurvived, '%', sep="")
+pie(mytableSurvived, labels = lblsSurvived,
+    main="Distribución de la variable Survived\n", col = c("coral","cyan3"))
+
+
+tablePclass<-table(ttc$Pclass)
+dfPclass<-data.frame(tablePclass)
+
+p<-ggplot(data=dfPclass, aes(x=Var1, y=Freq)) +
+  geom_bar(stat="identity", fill="#00b159")+
+  theme_minimal()+
+  xlab("Clase")+
+  ylab("Número de pasajeros")
+p
+
+tableEmb<-table(ttc$Embarked)
+dfEmb<-data.frame(tableEmb)
+
+p<-ggplot(data=dfEmb, aes(x=Var1, y=Freq)) +
+  geom_bar(stat="identity", fill="#00aedb")+
+  theme_minimal()+
+  xlab("Puerta de embarque")+
+  ylab("Número de pasajeros")
+p
+
+
+
+```
+
+De las gráficas anteriores podemos obtener las siguientes conclusiones:
+
+* Hay una mayor proporción de hombres que de mujeres a bordo.
+* La mayoría de los personas que iban a bordo no sobrevivieron.
+* La mayoría de las personas viajaron en tercera clase, y el número de personas que viajaban en segunda y en primera clase era muy similar.
+* La gran mayoría de pasajeros entraron por la puerta de embarque "S"
+
+
+Una vez representadas las variables categóricas, procedemos a representar las variables continuas del dataset, las cuales son:
+
+```{r}
+numerics = unlist(lapply(ttc, is.numeric))
+which(numerics, arr.ind = TRUE)
+```
+
+De todas las variables que han resultado ser numéricas, representaremos todas menos la variable **PassengerId** que indica únicamente el identificador de cada pasajero o pasajera.
+
+
+```{r}
+# Histograma para la variable Age
+ggplot(ttc, aes(x = Age)) + 
+  geom_histogram(aes(y = ..density..)) +
+  geom_density(alpha = 0.1, fill = "blue") + 
+  ggtitle("Passengers Age Density Histogram") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5))
+
+# Histograma para la variable SibSp
+ggplot(ttc, aes(x = SibSp)) + 
+  geom_histogram(aes(y = ..density..)) +
+  geom_density(alpha = 0.1, fill = "green") + 
+  ggtitle("Passengers sibings/spouses Density Histogram") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5))
+
+# Histograma para la variable Parch
+ggplot(ttc, aes(x = Parch)) + 
+  geom_histogram(aes(y = ..density..)) +
+  geom_density(alpha = 0.1, fill = "darkred") + 
+  ggtitle("Passengers parents/children Density Histogram") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5))
+
+# Histograma para la variable Fare
+ggplot(ttc, aes(x = Fare)) + 
+  geom_histogram(aes(y = ..density..)) +
+  geom_density(alpha = 0.1, fill = "yellow") + 
+  ggtitle("Passengers paid Fare Density Histogram") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5))
+```
+
+De las gráficas anteriores podemos obtener las siguientes conclusiones:
+
+* La variable **Age** se distribuye apróximadamente de una forma normal.
+* Las demás variables numéricas presentan una distribución unimodal sesgada hacia la izquierda.
+
+Para una visualizacion general de los datos, podemos representar graficamente los supervivientes agrupados por diversas variables.  
+
+```{r}
+# Por ejemplo, la frecuencia de supervivientes por Sexo
+ggplot(as.data.frame(table(ttc$Survived, ttc$Sex)), aes(Var2, Freq, fill=Var1)) + 
+  geom_bar(stat="identity") +
+  scale_fill_discrete(name = "Passenger Survived?", labels = c("No", "Yes")) +
+  ggtitle("Passenger Survival Frequency by Sex") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5)) +
+  xlab("Passenger Sex") + ylab("Frequency")
+
+# O la frecuencia de supervivientes por Clase
+ggplot(as.data.frame(table(ttc$Survived, ttc$Pclass)), aes(Var2, Freq, fill=Var1)) + 
+  geom_bar(stat="identity") +
+  scale_fill_discrete(name = "Passenger Survived?", labels = c("No", "Yes")) +
+  ggtitle("Passenger Survival Frequency by Class") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5)) +
+  xlab("Passenger Class") + ylab("Frequency")
+
+# O incluso la frecuencia de supervivientes por puerto de embarque
+ggplot(as.data.frame(table(ttc$Survived, ttc$Embarked)), aes(Var2, Freq, fill=Var1)) + 
+  geom_bar(stat="identity") +
+  scale_fill_discrete(name = "Passenger Survived?", labels = c("No", "Yes")) +
+  ggtitle("Passenger Survival by Port of Embarcation") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5)) +
+  xlab("Passenger Port of Embarcation") + ylab("Frequency")
+
+# Tambien por el grupo de Edad, aunque previamente debemos discretizar la variable Age 
+# ya que es numerica continua.
+
+ttc$AgeD <- discretize(ttc$Age, 
+                       method = "cluster", breaks = 3, labels=c("Young", "MidAge", "Old"))
+
+ggplot(as.data.frame(table(ttc$Survived, ttc$AgeD)), aes(Var2, Freq, fill=Var1)) + 
+  geom_bar(stat="identity") +
+  scale_fill_discrete(name = "Passenger Survived?", labels = c("No", "Yes")) +
+  ggtitle("Passenger Survival by Age Group") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5)) +
+  xlab("Passenger Age Group") + ylab("Frequency")
+
+# Otra grafica interesante puede ser aquella que muestre la frecuencia de supervivencia 
+# dependiendo de si el pasajero tenia familiares con el en el barco o viajaban solos
+
+ggplot(as.data.frame(table(ttc$Survived, ttc$SibSp)), aes(Var2, Freq, fill=Var1)) + 
+  geom_bar(stat="identity") +
+  scale_fill_discrete(name = "Passenger Survived?", labels = c("No", "Yes")) +
+  ggtitle("Passenger Survival by number of Siblings/Spouses") +
+  theme(plot.title = element_text(size = 14, hjust = 0.5)) +
+  xlab("Passenger number of siblings/Spouses") + ylab("Frequency")
+
+ggplot(as.data.frame(table(ttc$Survived, ttc$Parch)), aes(Var2, Freq, fill=Var1)) + 
+  geom_bar(stat="identity") +
+  scale_fill_discrete(name = "Passenger Survived?", labels = c("No", "Yes")) +
+  ggtitle("Passenger Survival by number of Parents/Children") +
+  theme(plot.title = element_text(size = 14, hjust = 0.5)) +
+  xlab("Passenger number of Parents/Children") + ylab("Frequency")
+
+# O en general, si el pasajero tenia familia a bordo
+ttc$PassengerFamily <- ifelse(ttc$SibSp != 0 | ttc$Parch != 0, 'FamilyOnBorad', "AlonePassenger") 
+table(ttc$Survived, ttc$PassengerFamily)
+ggplot(as.data.frame(table(ttc$Survived, ttc$PassengerFamily)), aes(Var2, Freq, fill=Var1)) + 
+  geom_bar(stat="identity") +
+  scale_fill_discrete(name = "Passenger Survived?", labels = c("No", "Yes")) +
+  ggtitle("Passenger Survival by Family On Board") +
+  theme(plot.title = element_text(size = 14, hjust = 0.5)) +
+  xlab("Passenger Family On Board") + ylab("Frequency")
+
+# Por ultimo una relacion interesante, es la frecuencia de supervicencia asociada
+# a la longitud del nombre del pasajero, bajo una premisa inicial de que, cuanto
+# mas largo fuera el nombre, el pasajero podria tener una clase social mas elevada
+ttc$NameLength <- vector("numeric", nrow(ttc))
+for (i in 1:nrow(ttc)) {
+  ttc$NameLength[i] <- nchar(as.character(ttc$Name)[i])
+}
+ttc$NameLengthD <- discretize(ttc$NameLength, 
+           method = "cluster", breaks = 4, labels=c("ShortName (<21)", 
+                                                    "MediumName (<28)", 
+                                                    "LongName (<40)", 
+                                                    "VeryLongName (<82)"))
+ggplot(as.data.frame(table(ttc$Survived, ttc$NameLengthD)), aes(Var2, Freq, fill=Var1)) + 
+  geom_bar(stat="identity") +
+  scale_fill_discrete(name = "Passenger Survived?", labels = c("No", "Yes")) +
+  ggtitle("Passenger Survival by Name Length") +
+  theme(plot.title = element_text(size = 20, hjust = 0.5)) +
+  xlab("Passenger Name Length, number of characters") + ylab("Frequency")
+```
+
+Por ultimo en el proceso de exploracion de los datos, se puede obtener una matriz de correlacion sobre las variables numericas del dataset:
+```{r}
+ttc_num <- subset(ttc, select=c(Age, SibSp, Parch, Fare))
+ttccorr <- cor(ttc_num)
+ggcorrplot(ttccorr, method = "circle")
+```
+
