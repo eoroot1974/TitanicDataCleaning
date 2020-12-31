@@ -28,6 +28,16 @@ if(!require(ggcorrplot)){
   install.packages("ggcorrplot")
   library(ggcorrplot)
 }
+
+if(!require(ggpubr)){
+  install.packages("ggpubr")
+  library(ggpubr)
+}
+
+if(!require(BSDA)){
+  install.packages("BSDA")
+  library(BSDA)
+}
 ```
 
 # Presentación
@@ -474,3 +484,219 @@ ttccorr <- cor(ttc_num)
 ggcorrplot(ttccorr, method = "circle")
 ```
 
+### 4.1. Selección de los grupos de datos que se quieren analizar/comparar (planificación de los análisis a aplicar).
+
+Se plantean 2 tipos de estrategias de analisis de los datos:
+
+1. Analisis estadistico inferencial centrado en 2 contrastes de Hipotesis.
+
+2. Modelizacion predictiva aplicando 3 modelos de clasificacion (regresion logistica, Random Forest y SupportVector Machine - SVM).
+
+A continuacion se desarrollan cada uno de ellos:
+
+### 4.2. Comprobación de la normalidad y homogeneidad de la varianza.
+
+Los chequeos de normalidad y homogeneidad de varianza son importantes para aplicar las diferentes heramientas y Tests de Hipotesis. En general usaremos pruebas Z-Test que requieren normalidad de las variables y el calculo del estadistico usa una formula u otra dependiendo de si las varianzas son homogeneas o no.
+
+Para el analisis de contrates de hipotesis sobre la media usamos una metrica especifica: el ratio de supervivencia. Esto es, si tomamos una muestra aleatoria de pasajeros bajo una condicion fija (mismo sexo, o misma clase) y obtenemos la media de la variable Survived, dicha media nos dara el ratio de supervivencia sobre esa sub muestra. 
+Por ejemplo, si tomamos una muestra de 100 pasajeros de  primera clase y obtenemos la media de la variable Survived:
+```{r}
+mean(as.numeric(as.character(ttc[sample(which(ttc$Pclass == 1),100),]$Survived)))
+```
+Este valor nos dice la media del ratio de supervivencia de esa muestra en particular.
+
+El teorema del limite central establece que, tomando un numero suficiente de estas submuestras, esta media del ratio de superviviencia se distribuye siguiendo una normal. Vamos a aplicar contrastes de hipotesis atendiendo a grupos por Clase (Primera y Tercera) y Sexo.  
+
+__COMPROBACION DE NORMALIDAD Y HOMOGENEIDAD DE VARIANZA EN MUESTRAS DE SUPERVIVENCIA POR CLASE DEL PASAJERO__
+
+```{r}
+# Generamos un array de medias sobre 100 submuestras aleatorias de 100
+# pasajeros de primera clase cada submuestra.
+iter <- 100
+vars <- 1
+First_class_SampleMeans <- matrix(ncol=vars, nrow=iter)
+for(i in 1:iter){
+  set.seed(i*16)
+  First_class_SampleMeans[i,] <- mean(as.numeric(as.character
+                                                 (ttc[sample(which
+                                                             (ttc$Pclass == 1)
+                                                             ,100),]$Survived)))
+}
+mean(First_class_SampleMeans)
+First_class_SampleMeans <- data.frame(First_class_SampleMeans)
+
+# Hacemos lo mismo pero para 100 submuestras aleatorias de 100 pasajeros de tercera clase 
+# cada submuestra.
+Third_class_SampleMeans <- matrix(ncol=vars, nrow=iter)
+for(i in 1:iter){
+  set.seed(i*16)
+  Third_class_SampleMeans[i,] <- mean(as.numeric(as.character
+                                                 (ttc[sample(which
+                                                             (ttc$Pclass == 3)
+                                                             ,100),]$Survived)))
+}
+mean(Third_class_SampleMeans)
+Third_class_SampleMeans <- data.frame(Third_class_SampleMeans)
+
+# Revisamos la distribucion de estas variables a nivel grafico de densidad:
+SF_FirstClass_Density <- ggplot(First_class_SampleMeans, aes(x = First_class_SampleMeans)) + 
+  geom_histogram(aes(y = ..density..)) +
+  geom_density(alpha = 0.5, fill = "green") + 
+  ggtitle("Survival rate Frequency in First Class") +
+  theme(plot.title = element_text(size = 10, hjust = 0.5))
+
+SF_ThirdClass_Density <- ggplot(Third_class_SampleMeans, aes(x = Third_class_SampleMeans)) + 
+  geom_histogram(aes(y = ..density..)) +
+  geom_density(alpha = 0.5, fill = "darkred") + 
+  ggtitle("Survival rate Frequency in Third Class") +
+  theme(plot.title = element_text(size = 10, hjust = 0.5))
+
+ggarrange(SF_FirstClass_Density , SF_ThirdClass_Density)
+```
+
+Para confirmar si ambas distribuciones pueden aproximarse a una normal, aplicamos el test de Shapiro sobre ambas:
+Este test toma como  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipotesis Nula:_ La Variable se distribuye segun una Normal.  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipotesis Alternativa:_ La variable NO se distribuye segun una normal.
+```{r}
+shapiro.test(First_class_SampleMeans$First_class_SampleMeans)
+shapiro.test(Third_class_SampleMeans$Third_class_SampleMeans)
+# A un nivel de confianza del 95%, los p-values son superiores al nivel de confianza
+# p-value > 0.05.
+# Por lo que no podemos descartar la Hipotesis Nula (esto es, no podemos descartar que
+# estas distribuciones son normales).
+```
+Alternativamente podemos usar los Quantile-Quantile Plots o Q-Q Plots para ver la correlacion entre cada variable y una normal, observando que se ajustan a la recta en 45 grados (son variables distribuidas normalmente).
+
+```{r}
+qqnorm(First_class_SampleMeans$First_class_SampleMeans)
+qqline(First_class_SampleMeans$First_class_SampleMeans)
+qqnorm(Third_class_SampleMeans$Third_class_SampleMeans)
+qqline(Third_class_SampleMeans$Third_class_SampleMeans)
+```
+
+De manera analoga podemos verificar la homogeneidad de varianzas en ambas muestras:
+```{r}
+# Usamos el test de Bartlett
+bartlett.test(list(First_class_SampleMeans$First_class_SampleMeans
+                   ,Third_class_SampleMeans$Third_class_SampleMeans))
+# En este caso, el p-value es superior a nuestro nivel de confianza (0.05) por lo que
+# mo podemos descartar que la diferencia entre las varianzas de ambas muestras sea nula
+```
+
+__COMPROBACION DE NORMALIDAD Y HOMOGENEIDAD DE VARIANZA EN MUESTRAS DE SUPERVIVENCIA POR SEXO DEL PASAJERO__
+
+```{r}
+# Generamos un array de medias sobre 100 submuestras aleatorias de 100
+# pasajeros de sexo masculino.
+iter <- 100
+vars <- 1
+Male_sex_SampleMeans <- matrix(ncol=vars, nrow=iter)
+for(i in 1:iter){
+  set.seed(i*16)
+  Male_sex_SampleMeans[i,] <- mean(as.numeric(as.character
+                                                 (ttc[sample(which
+                                                             (ttc$Sex == 'male')
+                                                             ,100),]$Survived)))
+}
+mean(Male_sex_SampleMeans)
+Male_sex_SampleMeans <- data.frame(Male_sex_SampleMeans)
+
+# Hacemos lo mismo pero para 100 submuestras aleatorias de 100 pasajeros de sexo
+# femenino.
+Female_sex_SampleMeans <- matrix(ncol=vars, nrow=iter)
+for(i in 1:iter){
+  set.seed(i*16)
+  Female_sex_SampleMeans[i,] <- mean(as.numeric(as.character
+                                                 (ttc[sample(which
+                                                             (ttc$Sex == 'female')
+                                                             ,100),]$Survived)))
+}
+mean(Female_sex_SampleMeans)
+Female_sex_SampleMeans <- data.frame(Female_sex_SampleMeans)
+
+# Revisamos la distribucion de estas variables a nivel grafico de densidad:
+SF_MaleSex_Density <- ggplot(Male_sex_SampleMeans, aes(x = Male_sex_SampleMeans)) + 
+  geom_histogram(aes(y = ..density..)) +
+  geom_density(alpha = 0.5, fill = "green") + 
+  ggtitle("Survival rate Frequency for Males") +
+  theme(plot.title = element_text(size = 10, hjust = 0.5))
+
+SF_FemaleSex_Density <- ggplot(Female_sex_SampleMeans, aes(x = Female_sex_SampleMeans)) + 
+  geom_histogram(aes(y = ..density..)) +
+  geom_density(alpha = 0.5, fill = "darkred") + 
+  ggtitle("Survival rate Frequency for Females") +
+  theme(plot.title = element_text(size = 10, hjust = 0.5))
+
+ggarrange(SF_MaleSex_Density , SF_FemaleSex_Density)
+```
+
+```{r}
+# Tests de Normalidad. Shapiro:
+shapiro.test(Male_sex_SampleMeans$Male_sex_SampleMeans)
+shapiro.test(Female_sex_SampleMeans$Female_sex_SampleMeans)
+# No podemos descartar la Hipotesis Nula de Normalidad
+
+```
+
+Q-Q Plots
+```{r}
+qqnorm(Male_sex_SampleMeans$Male_sex_SampleMeans)
+qqline(Male_sex_SampleMeans$Male_sex_SampleMeans)
+qqnorm(Female_sex_SampleMeans$Female_sex_SampleMeans)
+qqline(Female_sex_SampleMeans$Female_sex_SampleMeans)
+```
+
+De manera analoga podemos verificar la homogeneidad de varianzas en ambas muestras:
+```{r}
+# Test de Homogeneidad de Varianzas
+bartlett.test(list(Male_sex_SampleMeans$Male_sex_SampleMeans
+                   ,Female_sex_SampleMeans$Female_sex_SampleMeans))
+# En este caso, el p-value es superior a nuestro nivel de confianza (0.05) por lo que
+# mo podemos descartar que la diferencia entre las varianzas de ambas muestras sea nula
+```
+
+### 4.3. Aplicación de pruebas estadísticas para comparar los grupos de datos. En función de los datos y el objetivo del estudio, aplicar pruebas de contraste de hipótesis, correlaciones, regresiones, etc. Aplicar al menos tres métodos de análisis diferentes.
+
+__TESTS DE HIPOTESIS SOBRE LA MEDIA DE SUPEVIVENCIA SEGUN CLASE__  
+Planteamos como Hipotesis:  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipotess Nula:_ La media del ratio de supervivencia de los pasajeros en primera clase es la misma que la media del ratio de supervivencia para los pasajeros de tercera clase.  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipotesis Alternativa:_ La media del ratio de supervivencia de los pasajeros en primera clase es superior a la media del ratio de supervivencia para los pasajeros de tercera clase.
+
+```{r}
+# Se trata de un Z test de una cola sobre dos medias con varianzas muestrales distintas.
+# *Aunque el test de Bartlett no descarta que sean iguales usamos estos parametros 
+# considerando que no lo sean.
+z.test(First_class_SampleMeans$First_class_SampleMeans, 
+       Third_class_SampleMeans$Third_class_SampleMeans, 
+       sigma.x=sqrt(var(First_class_SampleMeans$First_class_SampleMeans)),
+       sigma.y=sqrt(var(Third_class_SampleMeans$Third_class_SampleMeans)),
+       alternative="greater",
+       conf.level = 0.95)
+# El resultado es que el p-value es inferior a nuestro nivel de confianza. Esto es, con un 
+# nivel de confianza del 95%, podemos descartar la hipotesis nula y aceptar la 
+# alternativa:
+# La media del ratio de supervivencia de los pasajeros en primera clase es superior a la 
+# media del ratio de supervivencia para los pasajeros de tercera clase
+```
+
+__TESTS DE HIPOTESIS SOBRE LA MEDIA DE SUPEVIVENCIA SEGUN SEXO__  
+Para este contraste fijamos las siguientes hipotesis:  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipotess Nula:_ La media del ratio de supervivencia de los hombres es la misma que la media del ratio de supervivencia para las mujeres.  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipotesis Alternativa:_ La media del ratio de supervivencia de los hombres es inferior a la media del ratio de supervivencia para las mujeres.  
+```{r}
+# Se trata de un Z test de una cola sobre dos medias con varianzas muestrales distintas.
+# *Aunque el test de Bartlett no descarta que sean iguales usamos estos parametros 
+# considerando que no lo sean.
+z.test(Male_sex_SampleMeans$Male_sex_SampleMeans, 
+       Female_sex_SampleMeans$Female_sex_SampleMeans, 
+       sigma.x=sqrt(var(Male_sex_SampleMeans$Male_sex_SampleMeans)),
+       sigma.y=sqrt(var(Female_sex_SampleMeans$Female_sex_SampleMeans)),
+       alternative="less",
+       conf.level = 0.95)
+# El resultado es que el p-value es inferior a nuestro nivel de confianza. Esto es, con un 
+# nivel de confianza del 95%, podemos descartar la hipotesis nula y aceptar la 
+# alternativa:
+# La media del ratio de supervivencia de los hombres es inferior a la media del ratio de 
+# supervivencia para las mujeres
+```
