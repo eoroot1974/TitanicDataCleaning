@@ -5,6 +5,7 @@ proyecto analítico y usar las herramientas de integración, limpieza, validaci�
 
 Para nuestra practica especifica hemos elegido el dataset asociado al ejemplo de Kaggle:  
 Titanic: Machine Learnin from Disaster  
+
 El hundimiento del Titanic es uno de los naufragios más trágicos de la historia.  
 
 El 15 de abril de 1912, durante su viaje inaugural, el RMS Titanic, ampliamente considerado “insumergible”,
