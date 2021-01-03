@@ -38,6 +38,46 @@ if(!require(BSDA)){
   install.packages("BSDA")
   library(BSDA)
 }
+if(!require(tidyverse)){
+  install.packages("tidyverse")
+  library(tidyverse)
+}
+
+if(!require(lattice)){
+  install.packages("lattice")
+  library(lattice)
+}
+
+if(!require(caret)){
+  install.packages("caret")
+  library(caret)
+}
+
+if(!require(dplyr)){
+  install.packages("dplyr")
+  library(dplyr)
+}
+
+if(!require(lattice)){
+  install.packages("lattice")
+  library(lattice)
+}
+
+if(!require(plyr)){
+  install.packages("plyr")
+  library(plyr)
+}
+
+if(!require(rsample)){
+  install.packages("rsample")
+  library(rsample)
+}
+
+if(!require(yardstick)){
+  install.packages("yardstick")
+  library(yardstick)
+}
+
 ```
 
 # Presentación
@@ -87,7 +127,7 @@ El último ejemplo corresponde a una competición activa de Kaggle de manera que
 # Preguntas y desarrollo de respuestas
 Siguiendo las principales etapas de un proyecto analítico, las diferentes tareas a realizar (y justificar) son las siguientes:  
 
-## 1. Descripción del dataset. ¿Por qué es importante y qué pregunta/problema pretende responder?
+# 1. Descripción del dataset. ¿Por qué es importante y qué pregunta/problema pretende responder?
 Para nuestra practica especifica hemos elegido el dataset asociado al ejemplo de Kaggle:  
 __Titanic: Machine Learnin from Disaster__  
 
@@ -124,13 +164,13 @@ Según los datos proporcionados en la web de Kaggle, las variables de los datase
 | __Cabin__ | Cabin Number | |
 | __Embarked__ | Port of Embarkation | |  
 
-## 2. Integración y selección de los datos de interés a utilizar
+# 2. Integración y selección de los datos de interés a utilizar
 
 En este caso al estar realizando el análisis de un único dataset, no es necesario realizar ninguna integración de distintas fuentes, pues sólo existe una. 
 
 Por otro lado, con respecto a la selección, en este caso al no ser un dataset excesivamente grande y al no tener fijado un objetivo diferente que analizar todo el conjunto de sus datos y no una parte de ellos, no se realizará ninguna selección del dataset de origen ni se acotará el mismo.
 
-## 3. Limpieza de datos
+# 3. Limpieza de datos
 En esta sección realizaremos una limpieza del dataset incluido en el fichero __train.csv__.
 
 Para ello, lo primero que realizaremos es la lectura del fichero __train.csv__ y comprobar como han sido interpretadas por R las variables que forman el mismo.
@@ -151,9 +191,45 @@ ttc$Pclass <- as.factor(ttc$Pclass)
 
 str(ttc)
 ```
+
+Por otro lado, la variable **Age**, ha sido interpretada por R como una variable numérica y no como una variable entera, lo que indica que esta posee valores decimales. Se procede a continuación a verificar cuantos casos hay de valores decimales en la variable Age.
+
+```{r}
+decimalAges<-c()
+
+for (i in 1:(nrow(ttc))){
+  if(!is.na(ttc$Age[i])){
+    if(as.integer(ttc$Age[i]) != ttc$Age[i])
+      decimalAges<-c(decimalAges,ttc$Age[i])
+  }
+}
+decimalAges
+length(decimalAges)
+```
+Como se puede observar, existen `r length(decimalAges)` casos de edades decimales. 
+
+Para solventar esta problemática sin perder datos, procederemos a realizar un redondeo al entero más cercano y en caso de ser un valor menor que 1, lo redondearemos a uno directamente. Procedemos a continuación a realizar dicha conversión:
+
+```{r}
+roundValues <- function(x){
+  if (!is.na(x['Age'])){
+    if(x['Age'] < 1)
+      x['Age'] = 1
+    else
+      x['Age'] = round(as.numeric(x['Age']))
+  }
+  return(x['Age'])
+}
+
+
+ttc$Age <- apply(ttc,1,roundValues)
+ttc$Age <- as.integer(ttc$Age)
+str(ttc)
+```
+
 Una vez que todas las variables han sido interpretadas correctamente, podemos proceder a realizar la limpieza y el procesamiento de los datos que contiene este dataframe.
 
-### 3.1. ¿Los datos contienen ceros o elementos vacíos? ¿Cómo gestionarías cada uno de estos casos?
+## 3.1. ¿Los datos contienen ceros o elementos vacíos? ¿Cómo gestionarías cada uno de estos casos?
 
 A continuación se procede a comprobar si existen valores nulos o elementos vacíos en el dataframe a analizar:
 
@@ -282,7 +358,7 @@ Por otro lado, el valor obtenido por la media es de `r mean_Fare`, mientras que 
 Al tratarse de tan pocos casos de los que se encuentran exageradamente desviados (3) y al parecer por el contexto que pueden tratarse de valores reales, se considera que deben ser utilizados para los distintos análisis o métodos estadísticos que se realicen, pero que se deberá tener en cuenta su presencia para aplicar análisis que sean robustos a la presencia de valores atípicos. Pues realizar una imputación de todos los valores que son realmente atípicos o eliminarlos, conllevaría una gran pérdida de información que no es necesaria.
 
 
-## 4. Análisis de los datos.
+# 4. Análisis de los datos.
 
 A continuación, procederemos a realizar una visualización de las diferentes columnas o variables que forman el dataset, para ver como se distribuyen las mismas.
 
@@ -483,8 +559,7 @@ ttc_num <- subset(ttc, select=c(Age, SibSp, Parch, Fare))
 ttccorr <- cor(ttc_num)
 ggcorrplot(ttccorr, method = "circle")
 ```
-
-### 4.1. Selección de los grupos de datos que se quieren analizar/comparar (planificación de los análisis a aplicar).
+## 4.1. Selección de los grupos de datos que se quieren analizar/comparar (planificación de los análisis a aplicar).
 
 Se plantean 2 tipos de estrategias de analisis de los datos:
 
@@ -494,20 +569,23 @@ Se plantean 2 tipos de estrategias de analisis de los datos:
 
 A continuacion se desarrollan cada uno de ellos:
 
-### 4.2. Comprobación de la normalidad y homogeneidad de la varianza.
+## 4.2. Comprobación de la normalidad y homogeneidad de la varianza.
 
-Los chequeos de normalidad y homogeneidad de varianza son importantes para aplicar las diferentes heramientas y Tests de Hipotesis. En general usaremos pruebas Z-Test que requieren normalidad de las variables y el calculo del estadistico usa una formula u otra dependiendo de si las varianzas son homogeneas o no.
+Los chequeos de normalidad y homogeneidad de varianza son importantes para aplicar las diferentes herramientas y Tests de Hipótesis. En general usaremos pruebas Z-Test que requieren normalidad de las variables y el cálculo del estadístico usa una fórmula u otra dependiendo de si las varianzas son homogéneas o no.
 
-Para el analisis de contrates de hipotesis sobre la media usamos una metrica especifica: el ratio de supervivencia. Esto es, si tomamos una muestra aleatoria de pasajeros bajo una condicion fija (mismo sexo, o misma clase) y obtenemos la media de la variable Survived, dicha media nos dara el ratio de supervivencia sobre esa sub muestra. 
+Para el análisis de contrates de hipótesis sobre la media usamos una métrica especifica: el ratio de supervivencia. Esto es, si tomamos una muestra aleatoria de pasajeros bajo una condición fija (mismo sexo, o misma clase) y obtenemos la media de la variable Survived, dicha media nos dará el ratio de supervivencia sobre esa sub muestra. 
+
 Por ejemplo, si tomamos una muestra de 100 pasajeros de  primera clase y obtenemos la media de la variable Survived:
 ```{r}
 mean(as.numeric(as.character(ttc[sample(which(ttc$Pclass == 1),100),]$Survived)))
 ```
 Este valor nos dice la media del ratio de supervivencia de esa muestra en particular.
 
-El teorema del limite central establece que, tomando un numero suficiente de estas submuestras, esta media del ratio de superviviencia se distribuye siguiendo una normal. Vamos a aplicar contrastes de hipotesis atendiendo a grupos por Clase (Primera y Tercera) y Sexo.  
+El teorema del límite central establece que, tomando un número suficiente de estas submuestras, esta media del ratio de superviviencia se distribuye siguiendo una normal. Vamos a aplicar contrastes de hipótesis atendiendo a grupos por Clase (Primera y Tercera) y Sexo.  
 
-__COMPROBACION DE NORMALIDAD Y HOMOGENEIDAD DE VARIANZA EN MUESTRAS DE SUPERVIVENCIA POR CLASE DEL PASAJERO__
+### 4.2.1 Comprobación de la normalidad y la homogenidad de la varianza en muestras de supervivencia por la clase del pasajero
+
+Para comprobar la normalidad y la homegeneidad de la varianza, se genera un array de medias sobre 100 submuestras aleatorias de 100 pasajeros de cada una de las clases, y se comprobará la normalidad y la homgenidad sobre dicho array, de manera que si sobre ese conjunto aleatorio obtenido se cumple, se cumplirá para todo el conjunto, según el teorema del límite central.
 
 ```{r}
 # Generamos un array de medias sobre 100 submuestras aleatorias de 100
@@ -555,18 +633,18 @@ ggarrange(SF_FirstClass_Density , SF_ThirdClass_Density)
 ```
 
 Para confirmar si ambas distribuciones pueden aproximarse a una normal, aplicamos el test de Shapiro sobre ambas:
-Este test toma como  
+
+Este test toma como:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipotesis Nula:_ La Variable se distribuye segun una Normal.  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipotesis Alternativa:_ La variable NO se distribuye segun una normal.
 ```{r}
 shapiro.test(First_class_SampleMeans$First_class_SampleMeans)
 shapiro.test(Third_class_SampleMeans$Third_class_SampleMeans)
-# A un nivel de confianza del 95%, los p-values son superiores al nivel de confianza
-# p-value > 0.05.
-# Por lo que no podemos descartar la Hipotesis Nula (esto es, no podemos descartar que
-# estas distribuciones son normales).
+
 ```
-Alternativamente podemos usar los Quantile-Quantile Plots o Q-Q Plots para ver la correlacion entre cada variable y una normal, observando que se ajustan a la recta en 45 grados (son variables distribuidas normalmente).
+A un nivel de confianza del 95%, los p-values obtenidos son superiores al nivel de signifación (p-value > 0.05), por lo que no podemos descartar la Hipotesis Nula (es decir, no podemos descartar que estas distribuciones son normales).
+
+Alternativamente podemos usar los Quantile-Quantile Plots o Q-Q Plots para ver la correlación entre cada variable y una normal, observando que se ajustan a la recta en 45 grados (son variables distribuidas normalmente).
 
 ```{r}
 qqnorm(First_class_SampleMeans$First_class_SampleMeans)
@@ -575,16 +653,17 @@ qqnorm(Third_class_SampleMeans$Third_class_SampleMeans)
 qqline(Third_class_SampleMeans$Third_class_SampleMeans)
 ```
 
-De manera analoga podemos verificar la homogeneidad de varianzas en ambas muestras:
+De manera análoga podemos verificar la homogeneidad de varianzas en ambas muestras utilizando el test de Bartlett:
 ```{r}
-# Usamos el test de Bartlett
 bartlett.test(list(First_class_SampleMeans$First_class_SampleMeans
                    ,Third_class_SampleMeans$Third_class_SampleMeans))
-# En este caso, el p-value es superior a nuestro nivel de confianza (0.05) por lo que
-# mo podemos descartar que la diferencia entre las varianzas de ambas muestras sea nula
-```
 
-__COMPROBACION DE NORMALIDAD Y HOMOGENEIDAD DE VARIANZA EN MUESTRAS DE SUPERVIVENCIA POR SEXO DEL PASAJERO__
+```
+En este caso, el p-value es superior a nuestro nivel de significación (0.05) por lo que no podemos descartar que la diferencia entre las varianzas de ambas muestras sea nula
+
+### 4.2.2 Comprobación de la normalidad y la homogenidad de la varianza en muestras de supervivencia por el sexo del pasajero
+
+Al igual que en el apartado anterior, para comprobar la normalidad y la homegeneidad de la varianza, se genera un array de medias sobre 100 submuestras aleatorias de 100 pasajeros de cada uno de los sexos y posteriormente se comprueba la normalidad y la homogenidad de estos arrays obtenidos.
 
 ```{r}
 # Generamos un array de medias sobre 100 submuestras aleatorias de 100
@@ -631,15 +710,17 @@ SF_FemaleSex_Density <- ggplot(Female_sex_SampleMeans, aes(x = Female_sex_Sample
 ggarrange(SF_MaleSex_Density , SF_FemaleSex_Density)
 ```
 
+Para comprobar la normalidad, procedemos a aplicar el test de Shapiro.
+
 ```{r}
-# Tests de Normalidad. Shapiro:
 shapiro.test(Male_sex_SampleMeans$Male_sex_SampleMeans)
 shapiro.test(Female_sex_SampleMeans$Female_sex_SampleMeans)
-# No podemos descartar la Hipotesis Nula de Normalidad
 
 ```
+Según los resultados obtenidos, no podemos descartar la Hipótesis Nula de Normalidad.
 
-Q-Q Plots
+Además, como en el apartado anterior, podemos ver que estos datos se comportan de una forma normal aplicando los Quantile-Quantile Plots o Q-Q Plots.
+
 ```{r}
 qqnorm(Male_sex_SampleMeans$Male_sex_SampleMeans)
 qqline(Male_sex_SampleMeans$Male_sex_SampleMeans)
@@ -647,47 +728,63 @@ qqnorm(Female_sex_SampleMeans$Female_sex_SampleMeans)
 qqline(Female_sex_SampleMeans$Female_sex_SampleMeans)
 ```
 
-De manera analoga podemos verificar la homogeneidad de varianzas en ambas muestras:
+De manera análoga podemos verificar la homogeneidad de varianzas en ambas muestras:
 ```{r}
 # Test de Homogeneidad de Varianzas
 bartlett.test(list(Male_sex_SampleMeans$Male_sex_SampleMeans
                    ,Female_sex_SampleMeans$Female_sex_SampleMeans))
-# En este caso, el p-value es superior a nuestro nivel de confianza (0.05) por lo que
-# mo podemos descartar que la diferencia entre las varianzas de ambas muestras sea nula
+
 ```
+En este caso, el p-value es superior a nuestro nivel de significación (0.05) por lo que no podemos descartar que la diferencia entre las varianzas de ambas muestras sea nula.
 
-### 4.3. Aplicación de pruebas estadísticas para comparar los grupos de datos. En función de los datos y el objetivo del estudio, aplicar pruebas de contraste de hipótesis, correlaciones, regresiones, etc. Aplicar al menos tres métodos de análisis diferentes.
 
-__TESTS DE HIPOTESIS SOBRE LA MEDIA DE SUPEVIVENCIA SEGUN CLASE__  
-Planteamos como Hipotesis:  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipotess Nula:_ La media del ratio de supervivencia de los pasajeros en primera clase es la misma que la media del ratio de supervivencia para los pasajeros de tercera clase.  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipotesis Alternativa:_ La media del ratio de supervivencia de los pasajeros en primera clase es superior a la media del ratio de supervivencia para los pasajeros de tercera clase.
+## 4.1 Selección de los grupos de datos que se quieren analizar/comparar (planificación de los análisis a aplicar).
+
+Tras analizar y explorar este dataframe, teniendo en cuenta las variables con las que se cuentan tras realizar la limpieza, hemos considerado interesante realizar los siguientes análisis:
+
+* **Test de hipótesis sobre la proporción de hombres que sobrevivieron frente a la proporción de mujeres** que lo hicieron, planteando como hipótesis alternativa que la proproción de hombres que sobrevivieron es mayor que la proporción de mujeres.
+
+* **Test de hipótesis sobre la proporción de personas que pertenecen a las distintas clases**, planteando como hipótesis alternativa que la proporción de personas que sobrevivieron en primera clase es mayor que la proporción de personas que sobrevivieron de las dos clases restantes.
+
+* **Modelo de Regresión Logística** tratando de predecir si un pasajero sobrevivirá o no.
+
+* **Comparación de modelo de Bosque Aleatorio contra un modelo de Máquinas de Vectores de soporte** para ver cual ofrece mejores resultados.
+
+
+## 4.3 Aplicación de pruebas estadísticas para comparar los grupos de datos.
+
+### 4.3.1 Tests de hipótesis
+
+#### 4.3.1.1 Tests de hipótesis sobre la media de supervivencia según las clases
+
+Planteamos como Hipótesis:  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipótesis Nula:_ La media del ratio de supervivencia de los pasajeros en primera clase es la misma que la media del ratio de supervivencia para los pasajeros de tercera clase.  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipótesis Alternativa:_ La media del ratio de supervivencia de los pasajeros en primera clase es superior a la media del ratio de supervivencia para los pasajeros de tercera clase.
+
+A continuación, aplicamos un Z test de una cola sobre dos medias con varianzas muestrales distintas, a pesar de que el test de Barlett no descartaba la posibilidad de que estas fuesen iguales.
 
 ```{r}
-# Se trata de un Z test de una cola sobre dos medias con varianzas muestrales distintas.
-# *Aunque el test de Bartlett no descarta que sean iguales usamos estos parametros 
-# considerando que no lo sean.
 z.test(First_class_SampleMeans$First_class_SampleMeans, 
        Third_class_SampleMeans$Third_class_SampleMeans, 
        sigma.x=sqrt(var(First_class_SampleMeans$First_class_SampleMeans)),
        sigma.y=sqrt(var(Third_class_SampleMeans$Third_class_SampleMeans)),
        alternative="greater",
        conf.level = 0.95)
-# El resultado es que el p-value es inferior a nuestro nivel de confianza. Esto es, con un 
-# nivel de confianza del 95%, podemos descartar la hipotesis nula y aceptar la 
-# alternativa:
-# La media del ratio de supervivencia de los pasajeros en primera clase es superior a la 
-# media del ratio de supervivencia para los pasajeros de tercera clase
-```
 
-__TESTS DE HIPOTESIS SOBRE LA MEDIA DE SUPEVIVENCIA SEGUN SEXO__  
-Para este contraste fijamos las siguientes hipotesis:  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipotess Nula:_ La media del ratio de supervivencia de los hombres es la misma que la media del ratio de supervivencia para las mujeres.  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipotesis Alternativa:_ La media del ratio de supervivencia de los hombres es inferior a la media del ratio de supervivencia para las mujeres.  
+```
+El resultado obtenido por el test es que el p-value es inferior a nuestro nivel de significación (0.05). Lo que quiere decir, que con un nivel de confianza del 95%, podemos descartar la hipotesis nula y aceptar la alternativa:
+
+- **La media del ratio de supervivencia de los pasajeros en primera clase es superior a la  media del ratio de supervivencia para los pasajeros de tercera clase**
+
+#### 4.3.1.2 Tests de hipótesis sobre la media de supervivencia según el sexo
+
+Para este contraste fijamos las siguientes hipótesis:  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipótesis Nula:_ La media del ratio de supervivencia de los hombres es la misma que la media del ratio de supervivencia para las mujeres.  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Hipótesis Alternativa:_ La media del ratio de supervivencia de los hombres es inferior a la media del ratio de supervivencia para las mujeres. 
+
+A continuación, aplicamos un Z test de una cola sobre dos medias con varianzas muestrales distintas, a pesar de que el test de Barlett no descartaba la posibilidad de que estas fuesen iguales.
+
 ```{r}
-# Se trata de un Z test de una cola sobre dos medias con varianzas muestrales distintas.
-# *Aunque el test de Bartlett no descarta que sean iguales usamos estos parametros 
-# considerando que no lo sean.
 z.test(Male_sex_SampleMeans$Male_sex_SampleMeans, 
        Female_sex_SampleMeans$Female_sex_SampleMeans, 
        sigma.x=sqrt(var(Male_sex_SampleMeans$Male_sex_SampleMeans)),
@@ -700,3 +797,373 @@ z.test(Male_sex_SampleMeans$Male_sex_SampleMeans,
 # La media del ratio de supervivencia de los hombres es inferior a la media del ratio de 
 # supervivencia para las mujeres
 ```
+El resultado obtenido por el test es que el p-value es inferior a nuestro nivel de significación (0.05). Lo que quiere decir, que con un nivel de confianza del 95%, podemos descartar la hipotesis nula y aceptar la alternativa:
+
+-  **La media del ratio de supervivencia de los hombres es inferior a la media del ratio de supervivencia para las mujeres**
+
+### 4.3.2 Modelos
+
+#### 4.3.2.1 Acotación principal de variables a utilizar
+
+
+
+De todas las variables con las que cuenta el dataframe que se está analizando en esta práctica, se descartan de primeras las siguientes variables para la construcción del modelo predictivo:
+
+* **PassengerId**
+* **Name**
+* **Ticket**
+
+Estas variables no tiene sentido utilizarlas para construir un modelo predictivo porque son variables que identifican a cada uno de los pasajeros y pasajeras.
+
+Por lo tanto, las únicas variables que tiene sentido poder utilizar para la construcción del modelo predictivo son las siguientes:
+
+* **Pclass**
+* **Sex**
+* **Age**
+* **SibSp**
+* **Parch**
+* **Fare**
+* **Embarked**
+
+Y la variable **Survived**, que nos servirá como variable objetivo del modelo.
+
+De todas las posibles variables a utilizar que se han citado, se considera que la variable **Fare** y la variable **Pclass** vienen a indicar prácticamente la misma información o muy similar, pues la variable **Pclass** indica la clase en la que se encuentra el pasajero/a y la variabel **Fare** el precio del billete o ticket de embarque. Normalmente a mayor precio del billete, más alta será la clase, aunque puede que existan casos que sean precios más altos pero pertenezcan a una clase baja y que dicho precio se haya visto incrementado porque se vendió durante los últimos días disponibles de venta del mismo. Pero de normal, a un mayor precio, más alta será la clase, lo que quiere decir que ambas variables están muy relacionadas entre sí. En los modelos predictivos, utilizar variables que de alguna manera indiquen la misma información puede hacer que empeore el modelo o en el mejor de los casos, no aportará mucha información al mismo, por lo que conviene elegir una de estas dos variables. En este caso, como el modelo predictivo es de clasificación, tiene más sentido utilizar la variable **Pclass** y eliminar por tanto la variable **Fare**.
+
+De esta manera, las únicas variables que pueden tener sentido utilizar para la construcción del modelo predictivo son las siguientes:
+
+* **Survived** (como variable objetivo)
+
+* **Pclass**
+* **Sex**
+* **Age**
+* **SibSp**
+* **Parch**
+* **Embarked**
+
+De todas estas posibles variables a utilizar, determinaremos cual utilizar o no realizando una selección de características. Para ello, se estudiará la relación de cada una de las variables con la variable objetivo mediante el test ***Chi-squared***, de manera que sólo se utilizarán para el modelo predictivo aquellas variables que podamos afirmar con un grado de confianza determinado que presentan cierta relación con la variable objetivo.
+
+
+Antes de realizar la selección de características, será necesario convertir aquellas variables numéricas a variables categóricas dividiendo las mismas en intervalos, ya que las variables numéricas no proporcionan mucha información en los modelos de clasificación. 
+
+Se procede a continuación a aplicar dicha conversión para todas las variables numéricas.
+
+#### 4.3.2.2 Data Binning
+
+
+
+A la conversión de variables numéricas a variables categóricas agrupando las mismas por intervalos, se le conoce como ***Data Binning*** o **Agrupación de Datos**. Esta técnica, presenta diferentes variantes de aplicación, pero en este caso dividiremos las variables numéricas por intervalos del mismo tamaño.
+
+Comenzaremos con la variable **Age**, dividiendo la misma en rangos de 5 años.
+
+```{r}
+ttc$Age <- cut(ttc$Age,breaks = 5*(0:16))
+head(ttc$Age)
+```
+
+Por otro lado, las variables **Parch** y **SibSp** se dividirán en grupos de 2.
+
+```{r}
+ttc$SibSp <- cut(ttc$SibSp,breaks = 2*(0:4), include.lowest = TRUE)
+ttc$Parch <- cut(ttc$Parch,breaks = 2*(0:3), include.lowest = TRUE)
+
+head(ttc$SibSp)
+head(ttc$Parch)
+```
+
+#### 4.3.2.3 Selección de características
+
+
+
+Una vez realizadas las conversiones necesarias, como se ha explicado anteriormente, en el apartado **4.3.1**, se procede a aplicar el test **Chi-squared** para cada una de las posibles variables a utilizar para construir el modelo predictivo, con la variable objetivo.
+
+El test **Chi-squared** es un test de hipótesis que consta de las siguientes hipótesis:
+
+* **Hipótesis nula**: Las variables sobre las que se está aplicando el test son independientes una de la otra.
+
+* **Hipótesis alternativa**: Las variables sobre las que se está aplicando el test están relacionadas una con la otra.
+
+
+El resultado de este test indicará la probabilidad de que la Hipótesis nula se cumpla, y se deberá fijar un nivel de confianza que nos permita rechazar esta o no. Al aplicar este test se suele utilizar un nivel de confianza de un 95%, que será el que utilizaremos nosotros también. De esta manera, rechazaremos la Hipótesis nula cuando la probabilidad de que esta se cumpla sea menor a un 5%. Hablamos de probabilidades porque se está midiendo la relación de dos variables aleatorias, por lo que no se puede asegurar sin un margen de error que estas están relacionadas o  no.
+
+A continuación, se procede a aplicar dicho test para cada una de las variables candidatas a formar el modelo predictivo.
+
+El orden que seguiremos para aplicar el test chi-cuadrado, es el siguiente:
+
+* 1. Pclass
+* 2. Sex
+* 3. Age
+* 4. SibSp
+* 5. Parch
+* 6. Embarked
+
+```{r}
+tab_Pclass <- table(ttc$Pclass,ttc$Survived)
+chisq_Pclass <- chisq.test(tab_Pclass)
+chisq_Pclass
+```
+
+Dado que el p-valor obtenido es menor que 0.05, se puede afirmar con un 95% de probabilidad que la variable **Pclass** se encuentra relacionada con la variable **Survived**, por lo que esta será utilizada para formar el modelo predictivo.
+
+```{r}
+related_features <- c("Pclass")
+
+```
+
+
+```{r}
+tab_Sex <- table(ttc$Sex, ttc$Survived)
+chisq_sex <- chisq.test(tab_Sex)
+chisq_sex
+```
+
+Dado que el p-valor obtenido es menor que 0.05, se puede afirmar con un 95% de probabilidad que la variable **Sex** se encuentra relacionada con la variable **Survived**, por lo que esta será utilizada para formar el modelo predictivo.
+
+```{r}
+related_features <- c(related_features,"Sex")
+
+```
+
+
+```{r}
+tab_Age <- table (ttc$Age, ttc$Survived)
+chisq_Age <- chisq.test(tab_Age)
+chisq_Age
+```
+
+Dado que el p-valor obtenido es menor que 0.05, se puede afirmar con un 95% de probabilidad que la variable **Age** se encuentra relacionada con la variable **Survived**, por lo que esta será utilizada para formar el modelo predictivo.
+
+```{r}
+related_features <- c(related_features,"Age")
+
+```
+
+
+```{r}
+tab_SibSp <- table (ttc$SibSp, ttc$Survived)
+chisq_SibSp <- chisq.test(tab_SibSp)
+chisq_SibSp
+
+```
+
+Dado que el p-valor obtenido es menor que 0.05, se puede afirmar con un 95% de probabilidad que la variable **SibSp** se encuentra relacionada con la variable **Survived**, por lo que esta será utilizada para formar el modelo predictivo.
+
+```{r}
+related_features <- c(related_features,"SibSp")
+
+```
+
+
+
+```{r}
+tab_Parch <- table(ttc$Parch, ttc$Survived)
+chisq_Parch <- chisq.test(tab_Parch)
+chisq_Parch
+```
+
+Dado que el p-valor obtenido es mayor que 0.05, no se puede afirmar que la variable **Parch** se encuentra relacionada con la variable **Survived**, por lo que esta no será utilizada para formar el modelo predictivo.
+
+```{r}
+tab_Embarked <- table(ttc$Embarked, ttc$Survived)
+chisq_Embarked <- chisq.test(tab_Embarked)
+chisq_Embarked
+```
+
+Dado que el p-valor obtenido es menor que 0.05, se puede afirmar con un 95% de probabilidad que la variable **Embarked** se encuentra relacionada con la variable **Survived**, por lo que esta será utilizada para formar el modelo predictivo.
+
+```{r}
+related_features <- c(related_features,"Embarked")
+
+```
+
+
+
+Tras realizar el test a todas las variables que había disponibles para formar el modelo, quedan únicamente para formar este las siguientes:
+
+```{r}
+related_features
+```
+
+A continuación, procedemos a añadir al vector **related_features** la variable objetivo, para poder obtener del dataframe original todas estas variables que son las que se utilizarán para construir el modelo predictivo.
+
+```{r}
+related_features <- c(related_features,"Survived")
+ttc_model <- ttc %>% select(related_features)
+head(ttc_model)
+```
+
+Antes de la aplicación de los modelos, procedemos a preparar el dataset para poder ser utilizado para crear los diferentes modelos predictivos.
+
+```{r}
+ttc_vectors <- ttc_model %>%
+  mutate_if(is.factor, as.numeric)
+head(ttc_vectors)
+
+ttc_vectors$Survived <- as.factor(ttc_vectors$Survived)
+
+
+ttc_vectors$Survived <- revalue(ttc_vectors$Survived, c("1"="NO", "2"="YES"))
+head(ttc_vectors)
+
+train_test_split <- initial_split(ttc_vectors, prop=3/4)
+
+
+TRAIN <- training(train_test_split)
+TEST <- testing(train_test_split)
+
+head(TRAIN)
+head(TEST)
+```
+
+
+#### 4.3.2.4 Regresión Logística
+
+
+A continuación, se procede a la creación del modelo predictivo regresión logística.
+
+```{r}
+control <- trainControl(method="repeatedcv", number=10, repeats=3, 
+                        summaryFunction = twoClassSummary, classProbs = TRUE)
+glm <- train(Survived~., data = TRAIN, method="glm", trControl=control)
+```
+
+Este modelo de regresión logística, se entrena aplicando para ello una validación cruzada anidada. De esta forma, esta búsqueda de mejores hiperparámetros se realiza dividiendo el conjunto de datos de entrenamiento en 10 bloques, de esos 10 bloques se utilizará en cada iteración uno de ellos para probar el modelo y el resto para entrenar el mismo. Este proceso se repetirá 3 veces y eso nos permitirá obtener de manera realista como se comporta el modelo creado, pues probándolo únicamente con la parte dedicada a los test, dicha parte puede estar sesgada. Por lo que de esta manera, nos dará una visión más realista de como funciona el modelo. 
+
+Este proceso, además debería buscar los mejores hiperparámetros para el modelo basándose en la métrica AUC, pero la regresión logística en el paquete **Caret**, no permite especificar ningún parámetro de ajuste, por lo que no se podrá aprovechar al 100% el potencial de esta función.
+
+Los resultados obtenidos por el modelo tras entrenar el mismo son los siguientes:
+
+```{r}
+glm
+```
+
+Estos resultados son la media de los resultados obtenidos al aplicar la validación cruzada anidada.
+
+Como se puede observar, se tratan de resultados bastante buenos.
+
+A continuación, se procede a probar el modelo creado y obtener las métricas resultantes con los datos destinados para testear el modelo.
+
+```{r}
+glm.TEST <- predict(glm, TEST)
+
+class_glm <- predict(glm, TEST)
+
+confusionMatrix(data=class_glm, TEST$Survived)
+```
+
+#### 4.3.2.4 Bosque Aleatorio
+
+A continuación, se procede a la creación del modelo predictivo utilizando el algoritmo de bosque aleatorio.
+
+```{r}
+rf <- train(Survived~., data = TRAIN, method="rf", trControl=control, 
+            tuneLength=4)
+rf
+
+```
+
+En este caso, como se puede observar, además de aplicar el método de validación cruzada anidada para validar el modelo, se trata de buscar los mejores valores de los hiperparámetros que permitan al modelo obtener las mejores métricas. En este caso, el hiperparámetro es ***mtry*** y el valor que ha resultado ser mejor, como aparece en la visualización anterior, es el **2**.
+
+Se procede a continuación además a obtener los resultados para los datos destinados para testear el modelo.
+
+```{r}
+rf.TEST <- predict(rf, TEST)
+class_rf <- predict(rf, TEST)
+
+confusionMatrix(data=class_rf, TEST$Survived)
+```
+
+Los resultados obtenidos son mejores aún que en la regresión logística, lo que es normal ya que el algoritmo de bosque aleatorio es un algoritmo más potente que la regresión logística.
+
+#### 4.3.2.5 Máquinas de Vectores de Soporte
+
+
+A continuación, se procede a la creación del modelo predictivo utilizando el algoritmo de máquinas de vectores de soporte de clasificación.
+
+```{r}
+
+svm_poly <- train(Survived~., data = TRAIN, method="svmPoly", 
+                    trControl=control,preProcess = c("center","scale"),
+                    tuneLength = 4)
+svm_poly
+
+```
+En este modelo, al igual que en el anterior, se trata de buscar los mejores hiperparámetros para el mismo, aplicando para ello un algoritmo de validación cruzada anidada. En este caso el hiperparámetro es **C** y el valor que ha resultado tener mejores resultados es cuando este tiene un valor de **0.25**. En este caso, además se ha aplicado un preprocesamiento de centrado y escalado de los datos. Este preprocesado aplica el escalado y centrado sobre los datos de entrenamiento que mejores resultados permita dar.
+
+Se procede a continuación además a obtener los resultados para los datos destinados para testear el modelo.
+
+```{r}
+class_svm_poly <- predict(svm_poly, TEST)
+confusionMatrix(data=class_svm_poly, TEST$Survived)
+```
+
+
+#### 4.3.2.6 Prueba con el dataset test
+
+Una vez construidos y comparados los modelos, se procede a obtener los resultados para el archivo **test.csv**, aplicando para ello el modelo que mejores resultados ha obtenido, que es el modelo de **bosque aleatorio**.
+
+Previamente a la aplicación del modelo predictivo, este dataset será procesado con los cambios que se aplicaron al dataset **train**, es decir, se realizará un redondeo de las edades que tengan decimales y una imputación de aquellas edades que no se tengan información.
+
+```{r}
+
+ttc_test_origin <- read.csv("./Data/test.csv",na.strings=c(""," ","NA"), 
+                     stringsAsFactors = TRUE)
+head(ttc_test_origin)
+
+features<-head(related_features,-1)
+ttc_test <- ttc_test_origin %>% select(features)
+head(ttc_test)
+
+
+ttc_test$Age <- apply(ttc_test,1,roundValues)
+ttc_test$Age <- as.numeric(ttc_test$Age)
+
+imputationFunct_test <- function(x){
+  if (is.na(x["Age"])){
+    x["Age"]<- median(ttc_test$Age[ttc_test$Pclass==x["Pclass"] & 
+                                     !is.na (ttc_test$Age)])
+  } else{
+    x<-x
+  }
+  return (x["Age"])
+}
+ttc_test$Age <- apply(ttc_test,1,imputationFunct_test)
+ttc_test$Age <- as.numeric(ttc_test$Age)
+
+ttc_test_vectors <- ttc_test %>%
+  mutate_if(is.factor, as.numeric)
+head(ttc_test_vectors)
+
+
+ttc_test_vectors.class <- predict(rf, ttc_test_vectors)
+ttc_test_origin$Survived <- ttc_test_vectors.class
+ttc_test_df = ttc_test_origin %>% select("PassengerId", "Survived")
+ttc_test_df$Survived = revalue(ttc_test_df$Survived, c("YES"=1, "NO"=0))
+ttc_test_df$Survived = as.numeric(ttc_test_df$Survived)
+
+write.csv(ttc_test_df,"./Data/test_results.csv", row.names = FALSE)
+
+```
+
+
+# 5. Representación de los resultados a partir de tablas y gráficas
+
+## 5.2 Tabla resumen de los resultados obtenidos en los modelos predictivos
+
+| Algoritmos                     | ROC       | Sens      | Spec      |
+|--------------------------------|-----------|-----------|-----------|
+| Regresión Logística            | 0.844145  | 0.8627236 | 0.7026667 |
+| Bosque Aleatorio               | 0.8465613 | 0.9404268 | 0.6420513 |
+| Máquina de Vectores de Soporte | 0.8372377 | 0.8024593 | 0.7386154 |
+
+
+# 6. Conclusiones obtenidas
+
+- Con respecto a los modelos predictivos, tras la aplicación de los modelos de: **regresión logística, bosque aleatorio y máquinas de vectores de soporte de clasificación**, el modelo que **mejores resultados** ha obtenido es el modelo que utiliza el algoritmo de **bosque aleatorio**. El modelo de regresión logística fue aplicado para probar los resultados obtenidos con el modelo de clasificación más simple por excelencia, pero los resultados de calidad obtenidos por el mismo han sido bastante buenos, de hecho, mejores que los obtenidos por el modelo de máquinas de vectores de soporte de clasificación, a pesar de que este último es un modelo más potente.
+
+# Contribuciones
+
+| Contribuciones              | Firma |
+|-----------------------------|-------|
+| Investigación Previa        |![Firma Fran](../FirmaFran.jpg) ![Firma Enrique](../EnriqueOterFirma.jpg)|
+| Redacción de las respuestas |![Firma Fran](../FirmaFran.jpg) ![Firma Enrique](../EnriqueOterFirma.jpg)|
+| Desarrollo código           |![Firma Fran](../FirmaFran.jpg) ![Firma Enrique](../EnriqueOterFirma.jpg)|
