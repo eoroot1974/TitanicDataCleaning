@@ -1,5 +1,5 @@
 ---
-title: "M2.851 - Tipología y ciclo de vida de los datos Practica 2"
+title: "M2851 - Tipología y ciclo de vida de los datos - Practica2 FM-EO"
 author: "Francisco Javier Melchor y Enrique Otero"
 date: "04/01/2021"
 toc: true
@@ -53,6 +53,11 @@ if(!require(caret)){
   library(caret)
 }
 
+if(!require(plyr)){
+  install.packages("plyr")
+  library(plyr)
+}
+
 if(!require(dplyr)){
   install.packages("dplyr")
   library(dplyr)
@@ -63,11 +68,6 @@ if(!require(lattice)){
   library(lattice)
 }
 
-if(!require(plyr)){
-  install.packages("plyr")
-  library(plyr)
-}
-
 if(!require(rsample)){
   install.packages("rsample")
   library(rsample)
@@ -76,6 +76,16 @@ if(!require(rsample)){
 if(!require(yardstick)){
   install.packages("yardstick")
   library(yardstick)
+}
+
+if(!require(randomForest)){
+  install.packages("randomForest")
+  library(randomForest)
+}
+
+if(!require(kernlab)){
+  install.packages("kernlab")
+  library(kernlab)
 }
 
 ```
@@ -1012,6 +1022,9 @@ TEST <- testing(train_test_split)
 
 head(TRAIN)
 head(TEST)
+
+write.csv(TRAIN, "ttc_train_clean.csv")
+write.csv(TEST, "ttc_test_clean.csv")
 ```
 
 
@@ -1147,6 +1160,14 @@ write.csv(ttc_test_df,"./Data/test_results.csv", row.names = FALSE)
 
 # 5. Representación de los resultados a partir de tablas y gráficas
 
+## 5.1 Tabla resumen de los resultados obtenidos en los contrastes de Hipotesis
+
+| Nombre del test de Hipotesis | Hipotesis | Z y p-value | Confianza | Resultado |
+|-|-|-|-|-|
+| Test de Hipotesis sobre la media del ratio de supervivencia entre pasajeros de primera clase y pasajeros de tercera clase | __Hipotesis Nula:__ La media del ratio de supervivencia de los pasajeros en primera clase es la misma que la media del ratio de supervivencia para los pasajeros de tercera clase. __Hipotesis Alternativa:__ La media del ratio de supervivencia de los pasajeros en primera clase es superior a la media del ratio de supervivencia para los pasajeros de tercera clase. | z = 74.496, p-value < 2.2e-16 | 95% | __Se descarta la Hipotesis Nula__ Hipotesis Alternativa: La media del ratio de supervivencia de los pasajeros en primera clase es superior a la media del ratio de supervivencia para los pasajeros de tercera clase. |
+| Test de Hipotesis sobre la media del ratio de supervivencia entre hombres y mujeres | __Hipotesis Nula:__ La media del ratio de supervivencia de los hombres es la misma que la media del ratio de supervivencia para las mujeres. __Hipotesis Alternativa:__ La media del ratio de supervivencia de los hombres es inferior a la media del ratio de supervivencia para las mujeres. | z = -107.15, p-value < 2.2e-16 | 95% | __Se descarta la Hipotesis Nula Hipotesis Alternativa:__ La media del ratio de supervivencia de los hombres es inferior a la media del ratio de supervivencia para las mujeres. |  
+
+
 ## 5.2 Tabla resumen de los resultados obtenidos en los modelos predictivos
 
 | Algoritmos                     | ROC       | Sens      | Spec      |
@@ -1158,12 +1179,14 @@ write.csv(ttc_test_df,"./Data/test_results.csv", row.names = FALSE)
 
 # 6. Conclusiones obtenidas
 
+- Con respecto a los analisis de estadistica inferencial focalizados en los __contrastes de Hipotesis__ se genera una variable aleatoria adicional que consiste en la media del ratio de supervivencia para diferentes grupos y muestras aleatorias. Una vez generada dicha variable y comprobada su normalidad (aunque el Teorema del limite central lo garantiza, se verfica usando tests de Shapiro y Q-Q Plots), se pasa a realizar 2 contrastes de Hipotesis sobre la media del ratio de supervivencia para dos casos: entre pasajeros de primera clase y de tercera clase y entre hombres y mujeres. Obteniendo inferencia estadistica significativa (a un 95% de confianza) de que __la supervivencia entre pasajeros de primera clase fue superior a los de tercera__ y de que __la supervivencia de mujeres fue superior a la de hombres__.
+
 - Con respecto a los modelos predictivos, tras la aplicación de los modelos de: **regresión logística, bosque aleatorio y máquinas de vectores de soporte de clasificación**, el modelo que **mejores resultados** ha obtenido es el modelo que utiliza el algoritmo de **bosque aleatorio**. El modelo de regresión logística fue aplicado para probar los resultados obtenidos con el modelo de clasificación más simple por excelencia, pero los resultados de calidad obtenidos por el mismo han sido bastante buenos, de hecho, mejores que los obtenidos por el modelo de máquinas de vectores de soporte de clasificación, a pesar de que este último es un modelo más potente.
 
 # Contribuciones
 
 | Contribuciones              | Firma |
 |-----------------------------|-------|
-| Investigación Previa        |![Firma Fran](../FirmaFran.jpg) ![Firma Enrique](../EnriqueOterFirma.jpg)|
-| Redacción de las respuestas |![Firma Fran](../FirmaFran.jpg) ![Firma Enrique](../EnriqueOterFirma.jpg)|
-| Desarrollo código           |![Firma Fran](../FirmaFran.jpg) ![Firma Enrique](../EnriqueOterFirma.jpg)|
+| Investigación Previa        |![Firma Fran](FirmaFran.jpeg) ![Firma Enrique](EnriqueOterFirma.jpeg)|
+| Redacción de las respuestas |![Firma Fran](FirmaFran.jpeg) ![Firma Enrique](EnriqueOterFirma.jpeg)|
+| Desarrollo código           |![Firma Fran](FirmaFran.jpeg) ![Firma Enrique](EnriqueOterFirma.jpeg)|
