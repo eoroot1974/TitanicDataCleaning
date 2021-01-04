@@ -725,6 +725,12 @@ ttc_test_df = ttc_test_origin %>% select("PassengerId", "Survived")
 ttc_test_df$Survived = revalue(ttc_test_df$Survived, c("YES"=1, "NO"=0))
 ttc_test_df$Survived = as.numeric(ttc_test_df$Survived)
 
-write.csv(ttc_test_df,"./Data/test_results.csv", row.names = FALSE)
+ttc_test_df$Survived[ttc_test_df$Survived == 1] <- 0
+ttc_test_df$Survived[ttc_test_df$Survived == 2] <- 1
+
+table(ttc_test_df$Survived)
+
+write.csv(ttc_test_df,"./DataSetsResults/Kaggle_test_results.csv", 
+          row.names = FALSE)
 
 

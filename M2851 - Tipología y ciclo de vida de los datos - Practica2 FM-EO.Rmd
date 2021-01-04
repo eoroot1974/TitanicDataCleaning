@@ -476,26 +476,32 @@ De las gráficas anteriores podemos obtener las siguientes conclusiones:
 * La variable **Age** se distribuye apróximadamente de una forma normal.
 * Las demás variables numéricas presentan una distribución unimodal sesgada hacia la izquierda.
 
-Para una visualizacion general de los datos, podemos representar graficamente los supervivientes agrupados por diversas variables.  
+Para una visualización general de los datos, podemos representar gráficamente los supervivientes agrupados por diversas variables.  
 
 ```{r}
-# Por ejemplo, la frecuencia de supervivientes por Sexo
 ggplot(as.data.frame(table(ttc$Survived, ttc$Sex)), aes(Var2, Freq, fill=Var1)) + 
   geom_bar(stat="identity") +
   scale_fill_discrete(name = "Passenger Survived?", labels = c("No", "Yes")) +
   ggtitle("Passenger Survival Frequency by Sex") +
   theme(plot.title = element_text(size = 20, hjust = 0.5)) +
   xlab("Passenger Sex") + ylab("Frequency")
+```
 
-# O la frecuencia de supervivientes por Clase
+En este caso, podemos ver como muere una mayor proporción de hombres que de mujeres.
+
+```{r}
 ggplot(as.data.frame(table(ttc$Survived, ttc$Pclass)), aes(Var2, Freq, fill=Var1)) + 
   geom_bar(stat="identity") +
   scale_fill_discrete(name = "Passenger Survived?", labels = c("No", "Yes")) +
   ggtitle("Passenger Survival Frequency by Class") +
   theme(plot.title = element_text(size = 20, hjust = 0.5)) +
   xlab("Passenger Class") + ylab("Frequency")
+```
 
-# O incluso la frecuencia de supervivientes por puerto de embarque
+En esta otra gráfica, se pede observar que la proporción de muertos es muyo mayor para aquellos pasajeros que pertenecían a la tercera clase.
+Mientras que la segunda y la primera presentan una proporción similar, pero sigue siendo la primera clase la que menor proporción de pasajeros muertos tiene con diferencia.
+
+```{r}
 ggplot(as.data.frame(table(ttc$Survived, ttc$Embarked)), aes(Var2, Freq, fill=Var1)) + 
   geom_bar(stat="identity") +
   scale_fill_discrete(name = "Passenger Survived?", labels = c("No", "Yes")) +
@@ -503,8 +509,11 @@ ggplot(as.data.frame(table(ttc$Survived, ttc$Embarked)), aes(Var2, Freq, fill=Va
   theme(plot.title = element_text(size = 20, hjust = 0.5)) +
   xlab("Passenger Port of Embarcation") + ylab("Frequency")
 
-# Tambien por el grupo de Edad, aunque previamente debemos discretizar la variable Age 
-# ya que es numerica continua.
+```
+
+En esta gráfica podemos observar que la proporción de muertos es mayor en aquellos que entraron por la puerta de embarque **S**, mientras que la **C** y la **Q** presentan una menor proporción.
+
+```{r}
 
 ttc$AgeD <- discretize(ttc$Age, 
                        method = "cluster", breaks = 3, labels=c("Young", "MidAge", "Old"))
@@ -516,9 +525,11 @@ ggplot(as.data.frame(table(ttc$Survived, ttc$AgeD)), aes(Var2, Freq, fill=Var1))
   theme(plot.title = element_text(size = 20, hjust = 0.5)) +
   xlab("Passenger Age Group") + ylab("Frequency")
 
-# Otra grafica interesante puede ser aquella que muestre la frecuencia de supervivencia 
-# dependiendo de si el pasajero tenia familiares con el en el barco o viajaban solos
+```
 
+Por otro lado, si discretizamos la variable **Age**, como en la gráfica anterior y la representamos, vemos que la proporción de muertos es mucho mayor en las personas jóvenes.
+
+```{r}
 ggplot(as.data.frame(table(ttc$Survived, ttc$SibSp)), aes(Var2, Freq, fill=Var1)) + 
   geom_bar(stat="identity") +
   scale_fill_discrete(name = "Passenger Survived?", labels = c("No", "Yes")) +
@@ -533,7 +544,11 @@ ggplot(as.data.frame(table(ttc$Survived, ttc$Parch)), aes(Var2, Freq, fill=Var1)
   theme(plot.title = element_text(size = 14, hjust = 0.5)) +
   xlab("Passenger number of Parents/Children") + ylab("Frequency")
 
-# O en general, si el pasajero tenia familia a bordo
+```
+
+Otra gráfica interesante son las dos anteriores que muestran la frecuencia de supervivencia dependiendo de si el pasajero tenia familiares a bordo o viajaban solos. Se puede observar que tanto en la variable **SibSp** que muestra el número de hermanas/esposas, como en la variable **Parch**, que muestra el número de padres/hijos, los que más proporción de muertos presentan son aquellos pasajeros que viajaban solos.
+
+```{r}
 ttc$PassengerFamily <- ifelse(ttc$SibSp != 0 | ttc$Parch != 0, 'FamilyOnBorad', "AlonePassenger") 
 table(ttc$Survived, ttc$PassengerFamily)
 ggplot(as.data.frame(table(ttc$Survived, ttc$PassengerFamily)), aes(Var2, Freq, fill=Var1)) + 
@@ -542,10 +557,13 @@ ggplot(as.data.frame(table(ttc$Survived, ttc$PassengerFamily)), aes(Var2, Freq, 
   ggtitle("Passenger Survival by Family On Board") +
   theme(plot.title = element_text(size = 14, hjust = 0.5)) +
   xlab("Passenger Family On Board") + ylab("Frequency")
+```
 
-# Por ultimo una relacion interesante, es la frecuencia de supervicencia asociada
-# a la longitud del nombre del pasajero, bajo una premisa inicial de que, cuanto
-# mas largo fuera el nombre, el pasajero podria tener una clase social mas elevada
+En esta última gráfica, se puede ver gráficamente mejor aún que en las dos anteriores a la misma, que efecivamente, murieron más pasajeros que viajaban solos que aquellos  que viajaban con algún familiar.
+
+Por último una relación interesante, es la frecuencia de supervicencia asociada a la longitud del nombre del pasajero, bajo una premisa inicial de que, cuanto mas largo fuera el nombre, el pasajero podría tener una clase social más elevada.
+
+```{r}
 ttc$NameLength <- vector("numeric", nrow(ttc))
 for (i in 1:nrow(ttc)) {
   ttc$NameLength[i] <- nchar(as.character(ttc$Name)[i])
@@ -563,12 +581,22 @@ ggplot(as.data.frame(table(ttc$Survived, ttc$NameLengthD)), aes(Var2, Freq, fill
   xlab("Passenger Name Length, number of characters") + ylab("Frequency")
 ```
 
-Por ultimo en el proceso de exploracion de los datos, se puede obtener una matriz de correlacion sobre las variables numericas del dataset:
+Como se puede observar, existe una mayor proporción de muertos en aquellos pasajeros con un nombre corto, y a medida que la longitud del nombre va en aumento, disminuye dicha proporción.
+
+
+Por último en el proceso de exploración de los datos, se puede obtener una matriz de correlación sobre las variables numéricas del dataset:
 ```{r}
 ttc_num <- subset(ttc, select=c(Age, SibSp, Parch, Fare))
 ttccorr <- cor(ttc_num)
 ggcorrplot(ttccorr, method = "circle")
+
 ```
+
+De esta última gráfica podemos destacar las siguientes correlaciones:
+
+- La variable **Age** se encuentra correlacionada inversamente con la variable **SibSp** y con la variable **Parch**.
+- La variable **Sibsp** se encuentra correlacionada con la variable **Parch**.
+
 ## 4.1. Selección de los grupos de datos que se quieren analizar/comparar (planificación de los análisis a aplicar).
 
 Se plantean 2 tipos de estrategias de analisis de los datos:
@@ -1153,7 +1181,13 @@ ttc_test_df = ttc_test_origin %>% select("PassengerId", "Survived")
 ttc_test_df$Survived = revalue(ttc_test_df$Survived, c("YES"=1, "NO"=0))
 ttc_test_df$Survived = as.numeric(ttc_test_df$Survived)
 
-write.csv(ttc_test_df,"./Data/test_results.csv", row.names = FALSE)
+ttc_test_df$Survived[ttc_test_df$Survived == 1] <- 0
+ttc_test_df$Survived[ttc_test_df$Survived == 2] <- 1
+
+table(ttc_test_df$Survived)
+
+write.csv(ttc_test_df,"./DataSetsResults/Kaggle_test_results.csv", 
+          row.names = FALSE)
 
 ```
 
